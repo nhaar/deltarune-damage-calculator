@@ -250,7 +250,6 @@ type Character = {
   weapon: Weapon
   armor1: Armor
   armor2: Armor
-  name: CharacterName
 }
 
 type Weapon = 'Woodblade' |
@@ -554,6 +553,47 @@ function ArmorSelect({ start, onChange, character, allItems }: {
   return <ItemSelect<Armor> start={start} onChange={onChange} list={armors} />
 }
 
+function CharacterBox({ 
+  name,
+  onWeaponChange,
+  onArmor1Change,
+  onArmor2Change,
+  weirdItems,
+  startWeapon,
+  stats,
+  weaponImage,
+  charImage
+} : {
+  name: CharacterName,
+  onWeaponChange: (n: CharacterName, w: Weapon) => void,
+  onArmor1Change: (n: CharacterName, a: Armor) => void,
+  onArmor2Change: (n: CharacterName, a: Armor) => void,
+  weirdItems: boolean,
+  startWeapon: Weapon,
+  stats: Record<CharacterName, CharacterStats>,
+  weaponImage: string,
+  charImage: string
+}) {
+  return (
+    <div>
+      <img src={charImage}></img>
+      <span>{name}</span>
+      <img src={weaponImage} />
+      <WeaponSelect start={startWeapon} onChange={(w) => onWeaponChange(name, w)} character={name} allItems={weirdItems} />
+      <img src={Armor1} />
+      <ArmorSelect start='------' onChange={(a) => onArmor1Change(name, a)} character={name} allItems={weirdItems} />
+      <img src={Armor2} />
+      <ArmorSelect start='------' onChange={(a) => onArmor2Change(name, a)} character={name} allItems={weirdItems} />
+      <span>ATK</span>
+      <span>{stats[name].atk}</span>
+      <span>MAG</span>
+      <span>{stats[name].mag}</span>
+      <span>DEF</span>
+      <span>{stats[name].def}</span>
+    </div>
+  )
+}
+
 export default function App() {
   const [chapter, setChapter] = useState<number>(1);
   const [altLvRegister, setAltLvRegister] = useState<boolean>(false);
@@ -562,12 +602,13 @@ export default function App() {
   const [enemyDef, setEnemyDef] = useState<number>(0);
   const [lv, setLv] = useState<number>(1);
   const [weirdItems, setWeirdItems] = useState<boolean>(false);
-  const [susie, setSusie] = useState<Character>({
-    name: 'Susie',
-    weapon: 'Mane Ax',
-    armor1: '------',
-    armor2: '------'
-  });
+  const [characters, setCharacters] = useState<Record<CharacterName, Character>>({
+    'Susie': {
+      weapon: 'Mane Ax',
+      armor1: '------',
+      armor2: '------'
+    }
+  })
 
   function updateChapter(e: React.ChangeEvent<HTMLInputElement>) {
     setChapter(clampInteger(Number(e.target.value), 1, CHAPTERS));
@@ -590,16 +631,34 @@ export default function App() {
     }
   }
 
-  function updateSusieWeapon(weapon: Weapon) {
-    setSusie(s => ({...s, weapon }))
+  function updateCharWeapon(character: CharacterName, weapon: Weapon) {
+    setCharacters(c => {
+      const changingStats = c[character];
+      return {
+        ...c,
+        [character]: { ...changingStats, weapon }
+      }  
+    })
   }
 
-  function updateSusieArmor1(armor: Armor) {
-    setSusie(s => ({...s, armor1: armor }))
+  function updateCharArmor1(character: CharacterName, armor: Armor) {
+    setCharacters(c => {
+      const changingStats = c[character];
+      return {
+        ...c,
+        [character]: { ...changingStats, armor1: armor }
+      }  
+    })
   }
 
-  function updateSusieArmor2(armor: Armor) {
-    setSusie(s => ({...s, armor2: armor }))
+  function updateCharArmor2(character: CharacterName, armor: Armor) {
+    setCharacters(c => {
+      const changingStats = c[character];
+      return {
+        ...c,
+        [character]: { ...changingStats, armor2: armor }
+      }  
+    })
   }
 
   let enemies: Enemy[] = [];
@@ -651,14 +710,22 @@ export default function App() {
 
   if (enemy === 'Susie') {
     // the weapon is accounted for interestingly
+    const susie = characters.Susie;
     enemyDefModifier = ARMOR_INFO[susie.armor1].def + ARMOR_INFO[susie.armor2].def + WEAPON_INFO[susie.weapon].def;
   }
 
-  const susieStats: CharacterStats = {
-    atk: getBaseStats('Susie', lv).atk + ARMOR_INFO[susie.armor1].atk + ARMOR_INFO[susie.armor2].atk + WEAPON_INFO[susie.weapon].atk,
-    def: getBaseStats('Susie', lv).def + ARMOR_INFO[susie.armor1].def + ARMOR_INFO[susie.armor2].def + WEAPON_INFO[susie.weapon].def,
-    mag: getBaseStats('Susie', lv).mag + ARMOR_INFO[susie.armor1].mag + ARMOR_INFO[susie.armor2].mag + WEAPON_INFO[susie.weapon].mag
+  const stats: Record<string, CharacterStats> = {};
+  for (const name of Object.keys(baseStatInfo)) {
+    const character = name as CharacterName;
+    const char = characters[character as CharacterName];
+    stats[character] = {
+      atk: getBaseStats(character, lv).atk + ARMOR_INFO[char.armor1].atk + ARMOR_INFO[char.armor2].atk + WEAPON_INFO[char.weapon].atk,
+      def: getBaseStats(character, lv).def + ARMOR_INFO[char.armor1].def + ARMOR_INFO[char.armor2].def + WEAPON_INFO[char.weapon].def,
+      mag: getBaseStats(character, lv).mag + ARMOR_INFO[char.armor1].mag + ARMOR_INFO[char.armor2].mag + WEAPON_INFO[char.weapon].mag
+    }
   }
+
+  const characterStats = stats as Record<CharacterName, CharacterStats>;
 
   return (
     <>
@@ -733,22 +800,17 @@ export default function App() {
           )
         }
       </div>
-      <div>
-        <img src={Susie}></img>
-        <span>Susie</span>
-        <img src={Axe} />
-        <WeaponSelect start={'Mane Ax'} onChange={updateSusieWeapon} character='Susie' allItems={weirdItems} />
-        <img src={Armor1} />
-        <ArmorSelect start='------' onChange={updateSusieArmor1} character='Susie' allItems={weirdItems} />
-        <img src={Armor2} />
-        <ArmorSelect start='------' onChange={updateSusieArmor2} character='Susie' allItems={weirdItems} />
-        <span>ATK</span>
-        <span>{susieStats.atk}</span>
-        <span>MAG</span>
-        <span>{susieStats.mag}</span>
-        <span>DEF</span>
-        <span>{susieStats.def}</span>
-      </div>
+      <CharacterBox 
+        name='Susie'
+        onWeaponChange={updateCharWeapon}
+        onArmor1Change={updateCharArmor1}
+        onArmor2Change={updateCharArmor2}
+        weirdItems={weirdItems}
+        startWeapon='Mane Ax'
+        stats={characterStats}
+        weaponImage={Axe}
+        charImage={Susie}
+      />
     </>
   )
 }
