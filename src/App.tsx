@@ -1,6 +1,12 @@
 import { useState } from 'react'
+import Kris from './assets/Kris.png'
 import Susie from './assets/Susie.png'
+import Ralsei from './assets/Ralsei.png'
+import Noelle from './assets/Noelle.png'
+import Sword from './assets/Sword.png'
 import Axe from './assets/Axe.png'
+import Scarf from './assets/Scarf.png'
+import Ring from './assets/Ring.png'
 import Armor1 from './assets/Armor1.png'
 import Armor2 from './assets/Armor2.png'
 import './App.css'
@@ -128,22 +134,67 @@ const WEAPON_INFO: Record<Weapon, Item> = {
   }
 }
 
+const STARTING_ITEMS: Record<CharacterName, Character> = {
+  'Kris': {
+    weapon: 'Woodblade',
+    armor1: '------',
+    armor2: '------'
+  },
+  'Susie': {
+    weapon: 'Mane Ax',
+    armor1: '------',
+    armor2: '------'
+  },
+  'Ralsei': {
+    weapon: 'RedScarf',
+    armor1: '------',
+    armor2: '------'
+  },
+  'Noelle': {
+    weapon: 'SnowRing',
+    armor1: 'Silver Watch',
+    armor2: 'Royal Pin'
+  }
+}
+
 const ALLOWED_WEAPONS: Record<CharacterName, Weapon[]> = {
+  'Kris': [
+    'Woodblade',
+    'SpookySword',
+    'BounceBlade',
+    'MechaSaber'
+  ],
   'Susie': [
     'Mane Ax',
     'BraveAx',
     'Devilsknife',
     'AutoAxe'
+  ],
+  'Noelle': [
+    'SnowRing',
+    'FreezeRing',
+    'ThornRing'
+  ],
+  'Ralsei': [
+    'RedScarf',
+    'Ragger',
+    'DaintyScarf',
+    'FiberScarf',
+    'Ragger2',
+    'PuppetScarf'
   ]
 }
 
 const FORBIDDEN_ARMORS: Record<CharacterName, Armor[]> = {
+  'Kris': [],
   'Susie': [
     'White Ribbon',
     'Pink Ribbon',
     'Tension Bow',
     'Twin Ribbon'
-  ]
+  ],
+  'Ralsei': [],
+  'Noelle': []
 }
 
 const ARMOR_INFO: Record<Armor, Item> = {
@@ -244,7 +295,10 @@ const ARMOR_INFO: Record<Armor, Item> = {
   }
 }
 
-type CharacterName = 'Susie'
+type CharacterName = 'Kris' | 
+  'Susie' |
+  'Ralsei' |
+  'Noelle'
 
 type Character = {
   weapon: Weapon
@@ -466,6 +520,23 @@ const enemyInfo: Record<Enemy, EnemyStats> = {
 }
 
 const baseStatInfo: Record<CharacterName, [CharacterStats, CharacterStats, CharacterStats]> = {
+  'Kris': [
+    {
+      atk: 10,
+      def: 2,
+      mag: 0
+    },
+    {
+      atk: 12,
+      def: 2,
+      mag: 0
+    },
+    {
+      atk: 14,
+      def: 2,
+      mag: 0
+    }
+  ],
   'Susie': [
     {
       atk: 14,
@@ -481,6 +552,40 @@ const baseStatInfo: Record<CharacterName, [CharacterStats, CharacterStats, Chara
       atk: 18,
       def: 2,
       mag: 3
+    }
+  ],
+  'Ralsei': [
+    {
+      atk: 8,
+      def: 2,
+      mag: 7
+    },
+    {
+      atk: 10,
+      def: 2,
+      mag: 9
+    },
+    {
+      atk: 12,
+      def: 2,
+      mag: 11
+    }
+  ],
+  'Noelle': [
+    {
+      atk: 3,
+      def: 1,
+      mag: 11
+    },
+    {
+      atk: 3,
+      def: 1,
+      mag: 11
+    },
+    {
+      atk: 3,
+      def: 1,
+      mag: 11
     }
   ]
 }
@@ -559,7 +664,6 @@ function CharacterBox({
   onArmor1Change,
   onArmor2Change,
   weirdItems,
-  startWeapon,
   stats,
   weaponImage,
   charImage
@@ -569,7 +673,6 @@ function CharacterBox({
   onArmor1Change: (n: CharacterName, a: Armor) => void,
   onArmor2Change: (n: CharacterName, a: Armor) => void,
   weirdItems: boolean,
-  startWeapon: Weapon,
   stats: Record<CharacterName, CharacterStats>,
   weaponImage: string,
   charImage: string
@@ -579,17 +682,21 @@ function CharacterBox({
       <img src={charImage}></img>
       <span>{name}</span>
       <img src={weaponImage} />
-      <WeaponSelect start={startWeapon} onChange={(w) => onWeaponChange(name, w)} character={name} allItems={weirdItems} />
+      <WeaponSelect start={STARTING_ITEMS[name].weapon} onChange={(w) => onWeaponChange(name, w)} character={name} allItems={weirdItems} />
       <img src={Armor1} />
-      <ArmorSelect start='------' onChange={(a) => onArmor1Change(name, a)} character={name} allItems={weirdItems} />
+      <ArmorSelect start={STARTING_ITEMS[name].armor1} onChange={(a) => onArmor1Change(name, a)} character={name} allItems={weirdItems} />
       <img src={Armor2} />
-      <ArmorSelect start='------' onChange={(a) => onArmor2Change(name, a)} character={name} allItems={weirdItems} />
+      <ArmorSelect start={STARTING_ITEMS[name].armor2} onChange={(a) => onArmor2Change(name, a)} character={name} allItems={weirdItems} />
       <span>ATK</span>
       <span>{stats[name].atk}</span>
-      <span>MAG</span>
-      <span>{stats[name].mag}</span>
       <span>DEF</span>
       <span>{stats[name].def}</span>
+      {name !== 'Kris' && (
+        <span>
+          <span>MAG</span>
+          <span>{stats[name].mag}</span>
+        </span>
+      )}
     </div>
   )
 }
@@ -602,13 +709,7 @@ export default function App() {
   const [enemyDef, setEnemyDef] = useState<number>(0);
   const [lv, setLv] = useState<number>(1);
   const [weirdItems, setWeirdItems] = useState<boolean>(false);
-  const [characters, setCharacters] = useState<Record<CharacterName, Character>>({
-    'Susie': {
-      weapon: 'Mane Ax',
-      armor1: '------',
-      armor2: '------'
-    }
-  })
+  const [characters, setCharacters] = useState<Record<CharacterName, Character>>({ ...STARTING_ITEMS })
 
   function updateChapter(e: React.ChangeEvent<HTMLInputElement>) {
     setChapter(clampInteger(Number(e.target.value), 1, CHAPTERS));
@@ -801,15 +902,44 @@ export default function App() {
         }
       </div>
       <CharacterBox 
+        name='Kris'
+        onWeaponChange={updateCharWeapon}
+        onArmor1Change={updateCharArmor1}
+        onArmor2Change={updateCharArmor2}
+        weirdItems={weirdItems}
+        stats={characterStats}
+        weaponImage={Sword}
+        charImage={Kris}
+      />
+      <CharacterBox 
         name='Susie'
         onWeaponChange={updateCharWeapon}
         onArmor1Change={updateCharArmor1}
         onArmor2Change={updateCharArmor2}
         weirdItems={weirdItems}
-        startWeapon='Mane Ax'
         stats={characterStats}
         weaponImage={Axe}
         charImage={Susie}
+      />
+      <CharacterBox 
+        name='Ralsei'
+        onWeaponChange={updateCharWeapon}
+        onArmor1Change={updateCharArmor1}
+        onArmor2Change={updateCharArmor2}
+        weirdItems={weirdItems}
+        stats={characterStats}
+        weaponImage={Scarf}
+        charImage={Ralsei}
+      />
+      <CharacterBox 
+        name='Noelle'
+        onWeaponChange={updateCharWeapon}
+        onArmor1Change={updateCharArmor1}
+        onArmor2Change={updateCharArmor2}
+        weirdItems={weirdItems}
+        stats={characterStats}
+        weaponImage={Ring}
+        charImage={Noelle}
       />
     </>
   )
