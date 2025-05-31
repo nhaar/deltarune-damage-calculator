@@ -638,7 +638,6 @@ function WeaponSelect({ start, onChange, character, allItems }: {
   if (!allItems) {
     weaponList = ALLOWED_WEAPONS[character];
   }
-  console.log(weaponList);
   return <ItemSelect<Weapon> start={start} onChange={onChange} list={weaponList} />
 }
 
@@ -691,14 +690,158 @@ function CharacterBox({
       <span>{stats[name].atk}</span>
       <span>DEF</span>
       <span>{stats[name].def}</span>
-      {name !== 'Kris' && (
-        <span>
+      <span>
           <span>MAG</span>
-          <span>{stats[name].mag}</span>
+          <span>{name === 'Kris' ? 0 : stats[name].mag}</span>
         </span>
-      )}
     </div>
   )
+}
+
+function floatEqualDelta(num1: number, num2: number): boolean {
+  return Math.abs(num1 - num2) < 0.00001;
+}
+
+function gamemakerRound(num: number): number {
+  const truncated = Math.floor(num);
+  const decimal = num % 1
+  if (decimal < 0.5) {
+    return truncated;
+  } else if (floatEqualDelta(decimal, 0.5)) {
+    return truncated % 2 === 0 ? truncated : truncated + 1;
+  } else {
+    return truncated + 1;
+  }
+}
+
+function calculateDamage(distance: number, atk: number, def: number): number {
+  let points = 0;
+  if (distance === 0) {
+    points = 150;
+  } else if (distance === 1) {
+    points = 120;
+  } else if (distance === 2) {
+    points = 110;
+  } else if (distance < 15) {
+    points = 100 - (distance * 2);
+  }
+
+  return gamemakerRound((atk * points / 20) - 3 * def);
+}
+
+function DamageRow({ label, characterStats, distance, enemyDef }: {
+  label: string,
+  characterStats: Record<CharacterName, CharacterStats>,
+  distance: number,
+  enemyDef: number
+}) {
+  return (
+    <tr>
+      <td>
+        {label}
+      </td>
+      {...Object.values(characterStats).map(stats => {
+        const damage = calculateDamage(distance, stats.atk, enemyDef);
+        return (
+          <td>{damage}</td>
+        )
+      })}
+    </tr>
+  )
+}
+
+function DamageTable({ characterStats, enemyDef }: {
+  characterStats: Record<CharacterName, CharacterStats>,
+  enemyDef: number
+}) {
+  ;
+
+  return (
+    <div>
+      <table>
+        <thead>
+          <tr>
+            <th>
+              Frame
+            </th>
+            {...Object.keys(characterStats).map((name) => {
+              return <th>{name} Attack</th>
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          <DamageRow label='Perfect' distance={0} characterStats={characterStats} enemyDef={enemyDef} />
+          {...Array.from({ length: 14}, (_, i) => i + 1).map((number) => {
+            return (
+              <DamageRow label={`${number} frames off`} distance={number} characterStats={characterStats} enemyDef={enemyDef} />
+            )
+          })}
+          <DamageRow label='Miss' distance={15} characterStats={characterStats} enemyDef={enemyDef} />
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function SpellTable({
+  spellName,
+  rows,
+  characterStats,
+  enemyDef
+}: {
+  spellName: string;
+  rows: Array<{
+    rowName: string;
+    rowFormula: (stats: CharacterStats, def: number) => number;
+  }>,
+  characterStats: CharacterStats,
+  enemyDef: number;
+}) {
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th colSpan={2}>
+            {spellName}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(row => {
+          return (
+            <tr>
+              <td>
+                {row.rowName}
+              </td>
+              <td>
+                {row.rowFormula(characterStats, enemyDef)}
+              </td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  )
+}
+
+function iceShockRoll(mag: number) {
+  return 30 * (mag - 10) + 90 + 1
+}
+
+function snowgraveRoll(mag: number) {
+  return Math.ceil(mag * 40 + 600);
+}
+
+function singleXSlash(atk: number, def: number) {
+  return gamemakerRound((atk * 150 / 20 - 3 * def) * 1.25);
+}
+
+function rudeBusterDamage(atk: number, mag: number, def: number) {
+  return 11 * atk + 5 * mag - 3 * def;
+}
+
+function redBusterDamage(atk: number, mag: number, def: number) {
+  return 13 * atk + 6 * mag - 6 * def + 90;
 }
 
 export default function App() {
@@ -941,6 +1084,77 @@ export default function App() {
         weaponImage={Ring}
         charImage={Noelle}
       />
+      <DamageTable characterStats={characterStats} enemyDef={enemyDef} />
+      <SpellTable spellName='Rude Buster' rows={[
+        {
+          rowName: 'Mash Z',
+          rowFormula(stats, def) {
+            return rudeBusterDamage(stats.atk, stats.mag, def) + 30;
+          },
+        },
+        {
+          rowName: 'No Mash Z',
+          rowFormula(stats, def) {
+            return rudeBusterDamage(stats.atk, stats.mag, def);
+          },
+        }
+      ]} characterStats={characterStats.Susie} enemyDef={enemyDef} />
+      <SpellTable spellName='Red Buster' rows={[
+        {
+          rowName: 'Mash Z',
+          rowFormula(stats, def) {
+            return redBusterDamage(stats.atk, stats.mag, def) + 30;
+          },
+        },
+        {
+          rowName: 'No Mash Z',
+          rowFormula(stats, def) {
+            return redBusterDamage(stats.atk, stats.mag, def);
+          },
+        }
+      ]} characterStats={characterStats.Susie} enemyDef={enemyDef} />
+      <SpellTable spellName='Ice Shock' rows={[
+        {
+          rowName: 'Highest Roll',
+          rowFormula(stats) {
+            return iceShockRoll(stats.mag) + 9;
+          },
+        },
+        {
+          rowName: 'Lowest Roll',
+          rowFormula(stats) {
+            return iceShockRoll(stats.mag);
+          },
+        }
+      ]} characterStats={characterStats.Noelle} enemyDef={enemyDef} />
+      <SpellTable spellName='X-Slash' rows={[
+        {
+          rowName: 'Single Slash',
+          rowFormula(stats, def) {
+            return singleXSlash(stats.atk, def);
+          },
+        },
+        {
+          rowName: 'Total Damage',
+          rowFormula(stats, def) {
+            return 2 * singleXSlash(stats.atk, def);
+          },
+        }
+      ]} characterStats={characterStats.Kris} enemyDef={enemyDef} />
+      <SpellTable spellName='Snowgrave' rows={[
+        {
+          rowName: 'Highest Roll',
+          rowFormula(stats) {
+            return snowgraveRoll(stats.mag) + 100;
+          },
+        },
+        {
+          rowName: 'Lowest Roll',
+          rowFormula(stats) {
+            return snowgraveRoll(stats.mag);
+          },
+        }
+      ]} characterStats={characterStats.Noelle} enemyDef={enemyDef} />
     </>
   )
 }
