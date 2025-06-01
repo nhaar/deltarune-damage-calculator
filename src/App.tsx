@@ -854,6 +854,9 @@ export default function App() {
   const [weirdItems, setWeirdItems] = useState<boolean>(false);
   const [characters, setCharacters] = useState<Record<CharacterName, Character>>({ ...STARTING_ITEMS })
 
+  // saving progress for variables that you can increment to reduce defense (eg spending lots of turns in a battle)
+  const [defenseReducers, setDefenseReducers] = useState<Partial<Record<Enemy, number>>>({});
+
   function updateChapter(e: React.ChangeEvent<HTMLInputElement>) {
     setChapter(clampInteger(Number(e.target.value), 1, CHAPTERS));
     setEnemy('');
@@ -867,6 +870,7 @@ export default function App() {
     if (e.target.value === '') {
       setEnemy('');
       setEnemyDef(0);
+      setEnemyHp(0);
     } else {
       const newEnemy = e.target.value as Enemy;
       setEnemy(newEnemy);
@@ -952,10 +956,45 @@ export default function App() {
   // dynamic changes in defense
   let enemyDefModifier = 0;
 
-  if (enemy === 'Susie') {
-    // the weapon is accounted for interestingly
-    const susie = characters.Susie;
-    enemyDefModifier = ARMOR_INFO[susie.armor1].def + ARMOR_INFO[susie.armor2].def + WEAPON_INFO[susie.weapon].def;
+  switch (enemy) {
+    case 'Susie':
+      // the weapon is accounted for interestingly
+      const susie = characters.Susie;
+      enemyDefModifier = ARMOR_INFO[susie.armor1].def + ARMOR_INFO[susie.armor2].def + WEAPON_INFO[susie.weapon].def;
+      break;
+  }
+
+  const enemyDefenseReducers: Partial<Record<Enemy, {
+    multiplier: number;
+    // number of times, not the value cap
+    cap: number;
+    description: string;
+  }>> = {
+    'Jevil': {
+      multiplier: 4,
+      cap: 6,
+      description: 'Number of pirouettes that lowered Jevil\'s defense'
+    },
+    'Spamton NEO [Basement]': {
+      multiplier: 3,
+      cap: 4,
+      description: 'Number of turns past turn 15'
+    },
+    'Queen': {
+      multiplier: 5,
+      cap: 5,
+      description: 'Number of turns past turn 14'
+    }
+  }
+
+  if (enemy !== '') {
+    const info = enemyDefenseReducers[enemy];
+    if (info !== undefined) {
+      enemyDefModifier = -info.multiplier * (defenseReducers[enemy] ?? 0);
+      if (enemyDefModifier < -info.cap * info.multiplier) {
+        enemyDefModifier = -info.cap * info.multiplier;
+      }
+    }
   }
 
   const stats: Record<string, CharacterStats> = {};
@@ -970,6 +1009,7 @@ export default function App() {
   }
 
   const characterStats = stats as Record<CharacterName, CharacterStats>;
+  const finalDef = enemyDef + enemyDefModifier;
 
   return (
     <>
@@ -1029,20 +1069,27 @@ export default function App() {
             })}
           </select>
         </div>
-        {
-          enemy !== '' && (
+        <div>
+          <div>
+            <span>Enemy DEF</span>
+            <span>{finalDef}</span>
+          </div>
+          <div>
+            <span>Enemy HP</span>
+            <span>{enemyHp}</span>
+          </div>
+        </div>
+        {...Object.entries(enemyDefenseReducers).map((pair) => {
+          const [enemyName, enemyInfo] = pair;
+          return enemy === (enemyName) && enemy !== '' && (
             <div>
-              <div>
-                <span>Enemy DEF</span>
-                <span>{enemyDef + enemyDefModifier}</span>
-              </div>
-              <div>
-                <span>Enemy HP</span>
-                <span>{enemyHp}</span>
-              </div>
+              <span>{enemyInfo.description}{` (max: ${enemyInfo.cap})`}</span>
+              <input type='number' value={defenseReducers[enemy] ?? 0} onChange={(e) => {
+                setDefenseReducers(d => ({ ...d, [enemy]: Number(e.target.value) }));
+              }} />
             </div>
-          )
-        }
+          );
+        })}
       </div>
       <CharacterBox 
         name='Kris'
@@ -1084,7 +1131,7 @@ export default function App() {
         weaponImage={Ring}
         charImage={Noelle}
       />
-      <DamageTable characterStats={characterStats} enemyDef={enemyDef} />
+      <DamageTable characterStats={characterStats} enemyDef={finalDef} />
       <SpellTable spellName='Rude Buster' rows={[
         {
           rowName: 'Mash Z',
@@ -1098,7 +1145,7 @@ export default function App() {
             return rudeBusterDamage(stats.atk, stats.mag, def);
           },
         }
-      ]} characterStats={characterStats.Susie} enemyDef={enemyDef} />
+      ]} characterStats={characterStats.Susie} enemyDef={finalDef} />
       <SpellTable spellName='Red Buster' rows={[
         {
           rowName: 'Mash Z',
@@ -1112,7 +1159,7 @@ export default function App() {
             return redBusterDamage(stats.atk, stats.mag, def);
           },
         }
-      ]} characterStats={characterStats.Susie} enemyDef={enemyDef} />
+      ]} characterStats={characterStats.Susie} enemyDef={finalDef} />
       <SpellTable spellName='Ice Shock' rows={[
         {
           rowName: 'Highest Roll',
@@ -1126,7 +1173,7 @@ export default function App() {
             return iceShockRoll(stats.mag);
           },
         }
-      ]} characterStats={characterStats.Noelle} enemyDef={enemyDef} />
+      ]} characterStats={characterStats.Noelle} enemyDef={finalDef} />
       <SpellTable spellName='X-Slash' rows={[
         {
           rowName: 'Single Slash',
@@ -1140,7 +1187,7 @@ export default function App() {
             return 2 * singleXSlash(stats.atk, def);
           },
         }
-      ]} characterStats={characterStats.Kris} enemyDef={enemyDef} />
+      ]} characterStats={characterStats.Kris} enemyDef={finalDef} />
       <SpellTable spellName='Snowgrave' rows={[
         {
           rowName: 'Highest Roll',
@@ -1154,7 +1201,7 @@ export default function App() {
             return snowgraveRoll(stats.mag);
           },
         }
-      ]} characterStats={characterStats.Noelle} enemyDef={enemyDef} />
+      ]} characterStats={characterStats.Noelle} enemyDef={finalDef} />
     </>
   )
 }
