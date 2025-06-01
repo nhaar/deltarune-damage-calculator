@@ -374,7 +374,8 @@ type Enemy = 'Lancer (Castle Town)' |
   'Clover (Ch 2)' |
   'Werewire' |
   'Tasque' |
-  'Virovirokun' |
+  'Virovirokun (Tutor)' |
+  'Virovirokun (Regular)' |
   'Berdly (Cyber Field)' |
   'Poppup' |
   'Ambyu-Lance' |
@@ -469,7 +470,11 @@ const enemyInfo: Record<Enemy, EnemyStats> = {
     hp: 240,
     df: 0
   },
-  'Virovirokun': {
+  'Virovirokun (Tutor)': {
+    hp: 90,
+    df: 0
+  },
+  'Virovirokun (Regular)': {
     hp: 240,
     df: 0
   },
@@ -946,7 +951,8 @@ export default function App() {
         'Clover (Ch 2)',
         'Werewire',
         'Tasque',
-        'Virovirokun',
+        'Virovirokun (Tutor)',
+        'Virovirokun (Regular)',
         'Berdly (Cyber Field)',
         'Poppup',
         'Ambyu-Lance',
