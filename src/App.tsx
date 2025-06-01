@@ -9,6 +9,7 @@ import Scarf from './assets/Scarf.png'
 import Ring from './assets/Ring.png'
 import Armor1 from './assets/Armor1.png'
 import Armor2 from './assets/Armor2.png'
+import './css/main.css';
 import './App.css'
 
 const CHAPTERS = 2;
@@ -133,6 +134,13 @@ const WEAPON_INFO: Record<Weapon, Item> = {
     mag: 0
   }
 }
+
+const CHAR_COLORS: Record<CharacterName, string> = {
+  'Kris': '#00a2e8',
+  'Susie': '#ea79c8',
+  'Ralsei': '#b5e41c',
+  'Noelle': '#fcfc04'
+};
 
 const STARTING_ITEMS: Record<CharacterName, Character> = {
   'Kris': {
@@ -682,23 +690,33 @@ function CharacterBox({
   charImage: string
 }) {
   return (
-    <div>
-      <img src={charImage}></img>
-      <span>{name}</span>
-      <img src={weaponImage} />
-      <WeaponSelect start={STARTING_ITEMS[name].weapon} onChange={(w) => onWeaponChange(name, w)} character={name} allItems={weirdItems} />
-      <img src={Armor1} />
-      <ArmorSelect start={STARTING_ITEMS[name].armor1} onChange={(a) => onArmor1Change(name, a)} character={name} allItems={weirdItems} />
-      <img src={Armor2} />
-      <ArmorSelect start={STARTING_ITEMS[name].armor2} onChange={(a) => onArmor2Change(name, a)} character={name} allItems={weirdItems} />
-      <span>ATK</span>
-      <span>{stats[name].atk}</span>
-      <span>DEF</span>
-      <span>{stats[name].def}</span>
-      <span>
-          <span>MAG</span>
-          <span>{name === 'Kris' ? 0 : stats[name].mag}</span>
+    <div className='info-box'>
+      <div className='icon-row'>
+        <img src={charImage}></img>
+        <span>{name}</span>
+      </div>
+      <div className='icon-row'>
+        <img src={weaponImage} />
+        <WeaponSelect start={STARTING_ITEMS[name].weapon} onChange={(w) => onWeaponChange(name, w)} character={name} allItems={weirdItems} />
+      </div>
+      <div className='icon-row'>
+        <img src={Armor1} />
+        <ArmorSelect start={STARTING_ITEMS[name].armor1} onChange={(a) => onArmor1Change(name, a)} character={name} allItems={weirdItems} />
+      </div>
+      <div className='icon-row'>
+        <img src={Armor2} />
+        <ArmorSelect start={STARTING_ITEMS[name].armor2} onChange={(a) => onArmor2Change(name, a)} character={name} allItems={weirdItems} />
+      </div>
+      <div className='stats'>
+        <span>ATK</span>
+        <span>{stats[name].atk}</span>
+        <span>DEF</span>
+        <span>{stats[name].def}</span>
+        <span className='magic-stat'>
+            <span>MAG</span>
+            <span>{name === 'Kris' ? 0 : stats[name].mag}</span>
         </span>
+      </div>
     </div>
   )
 }
@@ -745,10 +763,13 @@ function DamageRow({ label, characterStats, distance, enemyDef }: {
       <td>
         {label}
       </td>
-      {...Object.values(characterStats).map(stats => {
+      {...Object.entries(characterStats).map(pair => {
+        const [name, stats] = pair;
         const damage = calculateDamage(distance, stats.atk, enemyDef);
         return (
-          <td>{damage}</td>
+          <td style={{
+            color: CHAR_COLORS[name as CharacterName]
+          }}>{damage}</td>
         )
       })}
     </tr>
@@ -763,14 +784,16 @@ function DamageTable({ characterStats, enemyDef }: {
 
   return (
     <div>
-      <table>
+      <table border={2} cellPadding={10}>
         <thead>
           <tr>
             <th>
               Frame
             </th>
             {...Object.keys(characterStats).map((name) => {
-              return <th>{name} Attack</th>
+              return <th style={{
+                color: CHAR_COLORS[name as CharacterName]
+              }}>{name} Attack</th>
             })}
           </tr>
         </thead>
@@ -792,7 +815,8 @@ function SpellTable({
   spellName,
   rows,
   characterStats,
-  enemyDef
+  enemyDef,
+  color
 }: {
   spellName: string;
   rows: Array<{
@@ -801,12 +825,13 @@ function SpellTable({
   }>,
   characterStats: CharacterStats,
   enemyDef: number;
+  color: string;
 }) {
   return (
-    <table>
+    <table border={2} cellPadding={10}>
       <thead>
         <tr>
-          <th colSpan={2}>
+          <th colSpan={2} style={{ color }}>
             {spellName}
           </th>
         </tr>
@@ -818,7 +843,7 @@ function SpellTable({
               <td>
                 {row.rowName}
               </td>
-              <td>
+              <td style={{ color }}>
                 {row.rowFormula(characterStats, enemyDef)}
               </td>
             </tr>
@@ -1042,203 +1067,218 @@ export default function App() {
 
   return (
     <>
-      <div>
-        <h1>
-          Settings
-        </h1>
-        <div>
-          <label htmlFor='chapter'>Chapter</label>
-          <input type='number' name='chapter' value={chapter} onChange={updateChapter} />
-        </div>
-        <div>
-          <label htmlFor='lv'>Level</label>
-          <input type='number' name='lv' value={lv} onChange={updateLevel} />
-        </div>
-        <div>
-          <input type='checkbox' name='weird-items' checked={weirdItems} onChange={e => setWeirdItems(e.target.checked)} />
-          <label htmlFor='weird-items'>Show unusual/unused items?</label>
-        </div>
-        {chapter === 2 && (
+      <div className='info-boxes'>
+        <div className='info-box'>
+          <h1>
+            Settings
+          </h1>
+          <div className='number-row'>
+            <label htmlFor='chapter'>Chapter</label>
+            <input type='number' name='chapter' value={chapter} onChange={updateChapter} />
+          </div>
+          <div className='number-row'>
+            <label htmlFor='lv'>Level</label>
+            <input type='number' name='lv' value={lv} onChange={updateLevel} />
+          </div>
           <div>
-            <div>
-              <input type='checkbox' name='alt-lv-up' checked={altLvRegister} onChange={e => setAltLvRegister(e.target.checked)} />
-              <label htmlFor='alt-lv-up'>Use alternate kills register</label>
-            </div>
-            {altLvRegister ? (
+            <input type='checkbox' name='weird-items' checked={weirdItems} onChange={e => setWeirdItems(e.target.checked)} />
+            <label htmlFor='weird-items'>Show unusual/unused items?</label>
+          </div>
+          {chapter === 2 && (
+            <div id='ch2-info'>
               <div>
-                <div>
-                  <label htmlFor='times-stronger'>Times you got stronger</label>
-                  <input type='number' name='times-stronger' value={ch2GotStronger.you} onChange={(e) => {
-                    setCh2GotStronger(c => ({ ...c, you: Number(e.target.value) }));
-                  }} />
-                </div>
-                <div>
-                  <label htmlFor='noelle-stronger'>Times Noelle got stronger</label>
-                  <input type='number' name='noelle-stronger' value={ch2GotStronger.noelle} onChange={(e) => {
-                    setCh2GotStronger(c => ({ ...c, noelle: Number(e.target.value) }));
-                  }} />
-                </div>
+                <input type='checkbox' name='alt-lv-up' checked={altLvRegister} onChange={e => setAltLvRegister(e.target.checked)} />
+                <label htmlFor='alt-lv-up'>Use alternate kills register</label>
               </div>
-            ) : (
-              <div>
-                <div>
-                  <label htmlFor='before-noelle'>Chapter 2 Kills [Before Noelle]</label>
-                  <input type='number' name='before-noelle' value={ch2Kills.beforeNoelle} onChange={(e) => {
-                    setCh2Kills(c => ({ ...c, beforeNoelle: Number(e.target.value) }));
-                  }} />
+              {altLvRegister ? (
+                <div className='lvl-up-info'>
+                  <div className='number-row'>
+                    <label htmlFor='times-stronger'>Times you got stronger</label>
+                    <input type='number' name='times-stronger' value={ch2GotStronger.you} onChange={(e) => {
+                      setCh2GotStronger(c => ({ ...c, you: Number(e.target.value) }));
+                    }} />
+                  </div>
+                  <div className='number-row'>
+                    <label htmlFor='noelle-stronger'>Times Noelle got stronger</label>
+                    <input type='number' name='noelle-stronger' value={ch2GotStronger.noelle} onChange={(e) => {
+                      setCh2GotStronger(c => ({ ...c, noelle: Number(e.target.value) }));
+                    }} />
+                  </div>
                 </div>
-                <div>
-                  <label htmlFor='after-noelle'>Chapter 2 Kills [After Noelle]</label>
-                  <input type='number' name='after-noelle' value={ch2Kills.afterNoelle} onChange={(e) => {
-                    setCh2Kills(c => ({ ...c, afterNoelle: Number(e.target.value) }));
-                  }} />
+              ) : (
+                <div className='lvl-up-info'>
+                  <div className='number-row'>
+                    <label htmlFor='before-noelle'>Chapter 2 Kills [Before Noelle]</label>
+                    <input type='number' name='before-noelle' value={ch2Kills.beforeNoelle} onChange={(e) => {
+                      setCh2Kills(c => ({ ...c, beforeNoelle: Number(e.target.value) }));
+                    }} />
+                  </div>
+                  <div className='number-row'>
+                    <label htmlFor='after-noelle'>Chapter 2 Kills [After Noelle]</label>
+                    <input type='number' name='after-noelle' value={ch2Kills.afterNoelle} onChange={(e) => {
+                      setCh2Kills(c => ({ ...c, afterNoelle: Number(e.target.value) }));
+                    }} />
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-        <div>
-          <label htmlFor='enemy'>Enemy</label>
-          <select name='enemy' value={enemy} onChange={updateEnemy}>
-            <option value=''>[Select Enemy]</option>
-            {...enemies.map((enemy) => {
-              return <option value={enemy}>{enemy}</option>
-            })}
-          </select>
-        </div>
-        <div>
-          <div>
-            <span>Enemy DEF</span>
-            <span>{finalDef}</span>
-          </div>
-          <div>
-            <span>Enemy HP</span>
-            <span>{enemyHp}</span>
-          </div>
-        </div>
-        {...Object.entries(enemyDefenseReducers).map((pair) => {
-          const [enemyName, enemyInfo] = pair;
-          return enemy === (enemyName) && enemy !== '' && (
-            <div>
-              <span>{enemyInfo.description}{` (max: ${enemyInfo.cap})`}</span>
-              <input type='number' value={defenseReducers[enemy] ?? 0} onChange={(e) => {
-                setDefenseReducers(d => ({ ...d, [enemy]: Number(e.target.value) }));
-              }} />
+              )}
             </div>
-          );
-        })}
+          )}
+          <div className='select-row'>
+            <label htmlFor='enemy'>Enemy</label>
+            <select name='enemy' value={enemy} onChange={updateEnemy}>
+              <option value=''>[Select Enemy]</option>
+              {...enemies.map((enemy) => {
+                return <option value={enemy}>{enemy}</option>
+              })}
+            </select>
+          </div>
+          <div>
+            <div className='number-row'>
+              <span>Enemy DEF</span>
+              <span>{finalDef}</span>
+            </div>
+            <div className='number-row'>
+              <span>Enemy HP</span>
+              <span>{enemyHp}</span>
+            </div>
+          </div>
+          {...Object.entries(enemyDefenseReducers).map((pair) => {
+            const [enemyName, enemyInfo] = pair;
+            return enemy === (enemyName) && enemy !== '' && (
+              <div>
+                <span className='reducer-desc'>{enemyInfo.description}{` (max: ${enemyInfo.cap})`}</span>
+                <input className='reducer-input' type='number' value={defenseReducers[enemy] ?? 0} onChange={(e) => {
+                  setDefenseReducers(d => ({ ...d, [enemy]: Number(e.target.value) }));
+                }} />
+              </div>
+            );
+          })}
+        </div>
+        <CharacterBox 
+          name='Kris'
+          onWeaponChange={updateCharWeapon}
+          onArmor1Change={updateCharArmor1}
+          onArmor2Change={updateCharArmor2}
+          weirdItems={weirdItems}
+          stats={characterStats}
+          weaponImage={Sword}
+          charImage={Kris}
+        />
+        <CharacterBox 
+          name='Susie'
+          onWeaponChange={updateCharWeapon}
+          onArmor1Change={updateCharArmor1}
+          onArmor2Change={updateCharArmor2}
+          weirdItems={weirdItems}
+          stats={characterStats}
+          weaponImage={Axe}
+          charImage={Susie}
+        />
+        <CharacterBox 
+          name='Ralsei'
+          onWeaponChange={updateCharWeapon}
+          onArmor1Change={updateCharArmor1}
+          onArmor2Change={updateCharArmor2}
+          weirdItems={weirdItems}
+          stats={characterStats}
+          weaponImage={Scarf}
+          charImage={Ralsei}
+        />
+        <CharacterBox 
+          name='Noelle'
+          onWeaponChange={updateCharWeapon}
+          onArmor1Change={updateCharArmor1}
+          onArmor2Change={updateCharArmor2}
+          weirdItems={weirdItems}
+          stats={characterStats}
+          weaponImage={Ring}
+          charImage={Noelle}
+        />
       </div>
-      <CharacterBox 
-        name='Kris'
-        onWeaponChange={updateCharWeapon}
-        onArmor1Change={updateCharArmor1}
-        onArmor2Change={updateCharArmor2}
-        weirdItems={weirdItems}
-        stats={characterStats}
-        weaponImage={Sword}
-        charImage={Kris}
-      />
-      <CharacterBox 
-        name='Susie'
-        onWeaponChange={updateCharWeapon}
-        onArmor1Change={updateCharArmor1}
-        onArmor2Change={updateCharArmor2}
-        weirdItems={weirdItems}
-        stats={characterStats}
-        weaponImage={Axe}
-        charImage={Susie}
-      />
-      <CharacterBox 
-        name='Ralsei'
-        onWeaponChange={updateCharWeapon}
-        onArmor1Change={updateCharArmor1}
-        onArmor2Change={updateCharArmor2}
-        weirdItems={weirdItems}
-        stats={characterStats}
-        weaponImage={Scarf}
-        charImage={Ralsei}
-      />
-      <CharacterBox 
-        name='Noelle'
-        onWeaponChange={updateCharWeapon}
-        onArmor1Change={updateCharArmor1}
-        onArmor2Change={updateCharArmor2}
-        weirdItems={weirdItems}
-        stats={characterStats}
-        weaponImage={Ring}
-        charImage={Noelle}
-      />
-      <DamageTable characterStats={characterStats} enemyDef={finalDef} />
-      <SpellTable spellName='Rude Buster' rows={[
-        {
-          rowName: 'Mash Z',
-          rowFormula(stats, def) {
-            return rudeBusterDamage(stats.atk, stats.mag, def) + 30;
-          },
-        },
-        {
-          rowName: 'No Mash Z',
-          rowFormula(stats, def) {
-            return rudeBusterDamage(stats.atk, stats.mag, def);
-          },
-        }
-      ]} characterStats={characterStats.Susie} enemyDef={finalDef} />
-      <SpellTable spellName='Red Buster' rows={[
-        {
-          rowName: 'Mash Z',
-          rowFormula(stats, def) {
-            return redBusterDamage(stats.atk, stats.mag, def) + 30;
-          },
-        },
-        {
-          rowName: 'No Mash Z',
-          rowFormula(stats, def) {
-            return redBusterDamage(stats.atk, stats.mag, def);
-          },
-        }
-      ]} characterStats={characterStats.Susie} enemyDef={finalDef} />
-      <SpellTable spellName='Ice Shock' rows={[
-        {
-          rowName: 'Highest Roll',
-          rowFormula(stats) {
-            return iceShockRoll(stats.mag) + 9;
-          },
-        },
-        {
-          rowName: 'Lowest Roll',
-          rowFormula(stats) {
-            return iceShockRoll(stats.mag);
-          },
-        }
-      ]} characterStats={characterStats.Noelle} enemyDef={finalDef} />
-      <SpellTable spellName='X-Slash' rows={[
-        {
-          rowName: 'Single Slash',
-          rowFormula(stats, def) {
-            return singleXSlash(stats.atk, def);
-          },
-        },
-        {
-          rowName: 'Total Damage',
-          rowFormula(stats, def) {
-            return 2 * singleXSlash(stats.atk, def);
-          },
-        }
-      ]} characterStats={characterStats.Kris} enemyDef={finalDef} />
-      <SpellTable spellName='Snowgrave' rows={[
-        {
-          rowName: 'Highest Roll',
-          rowFormula(stats) {
-            return snowgraveRoll(stats.mag) + 100;
-          },
-        },
-        {
-          rowName: 'Lowest Roll',
-          rowFormula(stats) {
-            return snowgraveRoll(stats.mag);
-          },
-        }
-      ]} characterStats={characterStats.Noelle} enemyDef={finalDef} />
+
+      <div id='tables'>
+        <div id='damage-table'>
+          <div className='table-title'>Damage Table</div>
+          <DamageTable characterStats={characterStats} enemyDef={finalDef} />
+        </div>
+        <div>
+          <div className='table-title'>
+            Spells
+          </div>
+          <div id='spell-tables'>
+            <SpellTable spellName='Rude Buster' rows={[
+              {
+                rowName: 'Mash Z',
+                rowFormula(stats, def) {
+                  return rudeBusterDamage(stats.atk, stats.mag, def) + 30;
+                },
+              },
+              {
+                rowName: 'No Mash Z',
+                rowFormula(stats, def) {
+                  return rudeBusterDamage(stats.atk, stats.mag, def);
+                },
+              }
+            ]} characterStats={characterStats.Susie} enemyDef={finalDef} color='#edb4ec' />
+            <SpellTable spellName='Red Buster' rows={[
+              {
+                rowName: 'Mash Z',
+                rowFormula(stats, def) {
+                  return redBusterDamage(stats.atk, stats.mag, def) + 30;
+                },
+              },
+              {
+                rowName: 'No Mash Z',
+                rowFormula(stats, def) {
+                  return redBusterDamage(stats.atk, stats.mag, def);
+                },
+              }
+            ]} characterStats={characterStats.Susie} enemyDef={finalDef} color='#ff0000' />
+            <SpellTable spellName='Ice Shock' rows={[
+              {
+                rowName: 'Highest Roll',
+                rowFormula(stats) {
+                  return iceShockRoll(stats.mag) + 9;
+                },
+              },
+              {
+                rowName: 'Lowest Roll',
+                rowFormula(stats) {
+                  return iceShockRoll(stats.mag);
+                },
+              }
+            ]} characterStats={characterStats.Noelle} enemyDef={finalDef} color='#00ffff' />
+            <SpellTable spellName='X-Slash' rows={[
+              {
+                rowName: 'Single Slash',
+                rowFormula(stats, def) {
+                  return singleXSlash(stats.atk, def);
+                },
+              },
+              {
+                rowName: 'Total Damage',
+                rowFormula(stats, def) {
+                  return 2 * singleXSlash(stats.atk, def);
+                },
+              }
+            ]} characterStats={characterStats.Kris} enemyDef={finalDef} color='#00a2e8' />
+            <SpellTable spellName='Snowgrave' rows={[
+              {
+                rowName: 'Highest Roll',
+                rowFormula(stats) {
+                  return snowgraveRoll(stats.mag) + 100;
+                },
+              },
+              {
+                rowName: 'Lowest Roll',
+                rowFormula(stats) {
+                  return snowgraveRoll(stats.mag);
+                },
+              }
+            ]} characterStats={characterStats.Noelle} enemyDef={finalDef} color='#c0c0c0' />
+          </div>
+        </div>
+      </div>
     </>
   )
 }
