@@ -575,81 +575,112 @@ const enemyInfo: Record<Enemy, EnemyStats> = {
   }
 }
 
-const baseStatInfo: Record<CharacterName, [CharacterStats, CharacterStats, CharacterStats]> = {
-  'Kris': [
-    {
-      atk: 10,
-      def: 2,
-      mag: 0
+const CHARACTER_INFO: Record<CharacterName, {
+  lvInfo: Partial<Record<number, CharacterStats>>;
+  chapter: number;
+  weaponImage: string;
+  charImage: string;
+}> = {
+  'Kris': {
+    lvInfo: {
+      1: {
+        atk: 10,
+        def: 2,
+        mag: 0
+      },
+      2: {
+        atk: 12,
+        def: 2,
+        mag: 0
+      },
+      3: {
+        atk: 14,
+        def: 2,
+        mag: 0
+      }
     },
-    {
-      atk: 12,
-      def: 2,
-      mag: 0
+    chapter: 1,
+    weaponImage: Sword,
+    charImage: Kris
+  },
+  'Susie': {
+    lvInfo: {
+      1: {
+        atk: 14,
+        def: 2,
+        mag: 1
+      },
+      2: {
+        atk: 16,
+        def: 2,
+        mag: 1
+      },
+      3: {
+        atk: 18,
+        def: 2,
+        mag: 3
+      }
     },
-    {
-      atk: 14,
-      def: 2,
-      mag: 0
-    }
-  ],
-  'Susie': [
-    {
-      atk: 14,
-      def: 2,
-      mag: 1
+    chapter: 1,
+    weaponImage: Axe,
+    charImage: Susie
+  },
+  'Ralsei': {
+    lvInfo: {
+      1: {
+        atk: 8,
+        def: 2,
+        mag: 7
+      },
+      2: {
+        atk: 10,
+        def: 2,
+        mag: 9
+      },
+      3: {
+        atk: 12,
+        def: 2,
+        mag: 11
+      }
     },
-    {
-      atk: 16,
-      def: 2,
-      mag: 1
+    chapter: 1,
+    weaponImage: Scarf,
+    charImage: Ralsei
+  },
+  'Noelle': {
+    lvInfo: {
+      2: {
+        atk: 3,
+        def: 1,
+        mag: 11
+      },
+      3: {
+        atk: 3,
+        def: 1,
+        mag: 11
+      }
     },
-    {
-      atk: 18,
-      def: 2,
-      mag: 3
-    }
-  ],
-  'Ralsei': [
-    {
-      atk: 8,
-      def: 2,
-      mag: 7
-    },
-    {
-      atk: 10,
-      def: 2,
-      mag: 9
-    },
-    {
-      atk: 12,
-      def: 2,
-      mag: 11
-    }
-  ],
-  'Noelle': [
-    {
-      atk: 3,
-      def: 1,
-      mag: 11
-    },
-    {
-      atk: 3,
-      def: 1,
-      mag: 11
-    },
-    {
-      atk: 3,
-      def: 1,
-      mag: 11
-    }
-  ]
+    chapter: 2,
+    weaponImage: Ring,
+    charImage: Noelle
+  }
 }
 
 function getBaseStats(name: CharacterName, lv: number): CharacterStats {
+  const originalLv = lv;
   lv = clampInteger(lv, 1, MAX_LEVEL);
 
-  return baseStatInfo[name][lv - 1];
+  const characterLevelInfo = CHARACTER_INFO[name].lvInfo;
+
+  while (lv <= MAX_LEVEL) {
+    const stats = characterLevelInfo[lv];
+    if (stats !== undefined) {
+      return stats;
+    }
+    lv++;
+  }
+
+  throw new Error(`Character "${name}" could not find stats for level ${originalLv}`);
 }
 
 function clampInteger(value: number, min: number, max: number): number {
@@ -813,6 +844,8 @@ function DamageRow({ label, characterStats, distance, enemyDef }: {
   distance: number,
   enemyDef: number
 }) {
+  const { chapter } = useContext(AppContext);
+
   return (
     <tr>
       <td>
@@ -820,6 +853,10 @@ function DamageRow({ label, characterStats, distance, enemyDef }: {
       </td>
       {...Object.entries(characterStats).map(pair => {
         const [name, stats] = pair;
+        const info = CHARACTER_INFO[name as CharacterName];
+        if (chapter < info.chapter) {
+          return undefined;
+        }
         const damage = calculateDamage(distance, stats.atk, enemyDef);
         return (
           <td style={{
@@ -835,7 +872,7 @@ function DamageTable({ characterStats, enemyDef }: {
   characterStats: Record<CharacterName, CharacterStats>,
   enemyDef: number
 }) {
-  ;
+  const { chapter } = useContext(AppContext);
 
   return (
     <div>
@@ -846,6 +883,10 @@ function DamageTable({ characterStats, enemyDef }: {
               Frame
             </th>
             {...Object.keys(characterStats).map((name) => {
+              const info = CHARACTER_INFO[name as CharacterName];
+              if (chapter < info.chapter) {
+                return undefined;
+              }
               return <th style={{
                 color: CHAR_COLORS[name as CharacterName]
               }}>{name} Attack</th>
@@ -866,6 +907,11 @@ function DamageTable({ characterStats, enemyDef }: {
   )
 }
 
+type SpellRows = Array<{
+  rowName: string;
+  rowFormula: (stats: CharacterStats, def: number) => number;
+}>;
+
 function SpellTable({
   spellName,
   rows,
@@ -874,13 +920,10 @@ function SpellTable({
   color
 }: {
   spellName: string;
-  rows: Array<{
-    rowName: string;
-    rowFormula: (stats: CharacterStats, def: number) => number;
-  }>,
+  rows: SpellRows,
+  color: string;
   characterStats: CharacterStats,
   enemyDef: number;
-  color: string;
 }) {
   return (
     <table border={2} cellPadding={10}>
@@ -928,6 +971,115 @@ function rudeBusterDamage(atk: number, mag: number, def: number) {
 function redBusterDamage(atk: number, mag: number, def: number) {
   return 13 * atk + 6 * mag - 6 * def + 90;
 }
+
+const SPELLS: Array<{
+  name: string;
+  chapter: number;
+  rows: SpellRows,
+  color: string;
+  caster: CharacterName;
+}> = [
+  {
+    name: 'Rude Buster',
+    chapter: 1,
+    rows: [
+      {
+        rowName: 'Mash Z',
+        rowFormula(stats, def) {
+          return rudeBusterDamage(stats.atk, stats.mag, def) + 30;
+        },
+      },
+      {
+        rowName: 'No Mash Z',
+        rowFormula(stats, def) {
+          return rudeBusterDamage(stats.atk, stats.mag, def);
+        },
+      }
+    ],
+    color: '#edb4ec',
+    caster: 'Susie'
+  },
+  {
+    name: 'Red Buster',
+    rows: [
+      {
+        rowName: 'Mash Z',
+        rowFormula(stats, def) {
+          return redBusterDamage(stats.atk, stats.mag, def) + 30;
+        },
+      },
+      {
+        rowName: 'No Mash Z',
+        rowFormula(stats, def) {
+          return redBusterDamage(stats.atk, stats.mag, def);
+        },
+      }
+    ],
+    chapter: 1,
+    color: '#ff0000',
+    caster: 'Susie'
+  },
+  {
+    name: 'Ice Shock',
+    rows: [
+      {
+        rowName: 'Highest Roll',
+        rowFormula(stats) {
+          return iceShockRoll(stats.mag) + 9;
+        },
+      },
+      {
+        rowName: 'Lowest Roll',
+        rowFormula(stats) {
+          return iceShockRoll(stats.mag);
+        },
+      }
+    ],
+    chapter: 2,
+    color: '#00ffff',
+    caster: 'Noelle'
+  },
+  {
+    name: 'X-Slash',
+    rows: [
+      {
+        rowName: 'Single Slash',
+        rowFormula(stats, def) {
+          return singleXSlash(stats.atk, def);
+        },
+      },
+      {
+        rowName: 'Total Damage',
+        rowFormula(stats, def) {
+          return 2 * singleXSlash(stats.atk, def);
+        },
+      }
+    ],
+    chapter: 2,
+    color: '#00a2e8',
+    caster: 'Kris'
+  },
+  {
+    name: 'Snowgrave',
+    rows: [
+      {
+        rowName: 'Highest Roll',
+        rowFormula(stats) {
+          return snowgraveRoll(stats.mag) + 100;
+        },
+      },
+      {
+        rowName: 'Lowest Roll',
+        rowFormula(stats) {
+          return snowgraveRoll(stats.mag);
+        },
+      }
+    ],
+    chapter: 2,
+    color: '#c0c0c0',
+    caster: 'Noelle'
+  }
+]
 
 export default function App() {
   const [chapter, setChapter] = useState<number>(1);
@@ -1106,7 +1258,7 @@ export default function App() {
   }
 
   const stats: Record<string, CharacterStats> = {};
-  for (const name of Object.keys(baseStatInfo)) {
+  for (const name of Object.keys(CHARACTER_INFO)) {
     const character = name as CharacterName;
     const char = characters[character as CharacterName];
 
@@ -1215,46 +1367,22 @@ export default function App() {
               );
             })}
           </div>
-          <CharacterBox 
-            name='Kris'
-            onWeaponChange={updateCharWeapon}
-            onArmor1Change={updateCharArmor1}
-            onArmor2Change={updateCharArmor2}
-            weirdItems={weirdItems}
-            stats={characterStats}
-            weaponImage={Sword}
-            charImage={Kris}
-          />
-          <CharacterBox 
-            name='Susie'
-            onWeaponChange={updateCharWeapon}
-            onArmor1Change={updateCharArmor1}
-            onArmor2Change={updateCharArmor2}
-            weirdItems={weirdItems}
-            stats={characterStats}
-            weaponImage={Axe}
-            charImage={Susie}
-          />
-          <CharacterBox 
-            name='Ralsei'
-            onWeaponChange={updateCharWeapon}
-            onArmor1Change={updateCharArmor1}
-            onArmor2Change={updateCharArmor2}
-            weirdItems={weirdItems}
-            stats={characterStats}
-            weaponImage={Scarf}
-            charImage={Ralsei}
-          />
-          <CharacterBox 
-            name='Noelle'
-            onWeaponChange={updateCharWeapon}
-            onArmor1Change={updateCharArmor1}
-            onArmor2Change={updateCharArmor2}
-            weirdItems={weirdItems}
-            stats={characterStats}
-            weaponImage={Ring}
-            charImage={Noelle}
-          />
+          {...Object.entries(CHARACTER_INFO).map(pair => {
+            const [name, info] = pair;
+            if (chapter >= info.chapter) {
+              return <CharacterBox 
+                name={name as CharacterName}
+                onWeaponChange={updateCharWeapon}
+                onArmor1Change={updateCharArmor1}
+                onArmor2Change={updateCharArmor2}
+                weirdItems={weirdItems}
+                stats={characterStats}
+                weaponImage={info.weaponImage}
+                charImage={info.charImage}
+              />
+            }
+            return undefined;
+          })}
         </div>
 
         <div id='tables'>
@@ -1267,76 +1395,12 @@ export default function App() {
               Spells
             </div>
             <div id='spell-tables'>
-              <SpellTable spellName='Rude Buster' rows={[
-                {
-                  rowName: 'Mash Z',
-                  rowFormula(stats, def) {
-                    return rudeBusterDamage(stats.atk, stats.mag, def) + 30;
-                  },
-                },
-                {
-                  rowName: 'No Mash Z',
-                  rowFormula(stats, def) {
-                    return rudeBusterDamage(stats.atk, stats.mag, def);
-                  },
+              {...SPELLS.map(spell => {
+                if (chapter < spell.chapter) {
+                  return undefined;
                 }
-              ]} characterStats={characterStats.Susie} enemyDef={finalDef} color='#edb4ec' />
-              <SpellTable spellName='Red Buster' rows={[
-                {
-                  rowName: 'Mash Z',
-                  rowFormula(stats, def) {
-                    return redBusterDamage(stats.atk, stats.mag, def) + 30;
-                  },
-                },
-                {
-                  rowName: 'No Mash Z',
-                  rowFormula(stats, def) {
-                    return redBusterDamage(stats.atk, stats.mag, def);
-                  },
-                }
-              ]} characterStats={characterStats.Susie} enemyDef={finalDef} color='#ff0000' />
-              <SpellTable spellName='Ice Shock' rows={[
-                {
-                  rowName: 'Highest Roll',
-                  rowFormula(stats) {
-                    return iceShockRoll(stats.mag) + 9;
-                  },
-                },
-                {
-                  rowName: 'Lowest Roll',
-                  rowFormula(stats) {
-                    return iceShockRoll(stats.mag);
-                  },
-                }
-              ]} characterStats={characterStats.Noelle} enemyDef={finalDef} color='#00ffff' />
-              <SpellTable spellName='X-Slash' rows={[
-                {
-                  rowName: 'Single Slash',
-                  rowFormula(stats, def) {
-                    return singleXSlash(stats.atk, def);
-                  },
-                },
-                {
-                  rowName: 'Total Damage',
-                  rowFormula(stats, def) {
-                    return 2 * singleXSlash(stats.atk, def);
-                  },
-                }
-              ]} characterStats={characterStats.Kris} enemyDef={finalDef} color='#00a2e8' />
-              <SpellTable spellName='Snowgrave' rows={[
-                {
-                  rowName: 'Highest Roll',
-                  rowFormula(stats) {
-                    return snowgraveRoll(stats.mag) + 100;
-                  },
-                },
-                {
-                  rowName: 'Lowest Roll',
-                  rowFormula(stats) {
-                    return snowgraveRoll(stats.mag);
-                  },
-                }
-              ]} characterStats={characterStats.Noelle} enemyDef={finalDef} color='#c0c0c0' />
+                return <SpellTable spellName={spell.name} rows={spell.rows} characterStats={characterStats[spell.caster]} enemyDef={finalDef} color={spell.color} />
+              })}
             </div>
           </div>
         </div>
