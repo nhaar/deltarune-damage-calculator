@@ -1039,13 +1039,15 @@ export default function App() {
 
   let youStrongTimes = 0;
   let noelleStrongTimes = 0;
-  if (altLvRegister) {
-    youStrongTimes = ch2GotStronger.you;
-    noelleStrongTimes = ch2GotStronger.noelle;
-  } else {
-    const kills = ch2Kills.beforeNoelle + ch2Kills.afterNoelle;
-    youStrongTimes = Math.floor(kills / 10);
-    noelleStrongTimes = Math.floor(kills / 4) - Math.floor(ch2Kills.beforeNoelle / 4);
+  if (chapter === 2) {
+    if (altLvRegister) {
+      youStrongTimes = ch2GotStronger.you;
+      noelleStrongTimes = ch2GotStronger.noelle;
+    } else {
+      const kills = ch2Kills.beforeNoelle + ch2Kills.afterNoelle;
+      youStrongTimes = Math.floor(kills / 10);
+      noelleStrongTimes = Math.floor(kills / 4) - Math.floor(ch2Kills.beforeNoelle / 4);
+    }
   }
 
   const stats: Record<string, CharacterStats> = {};
