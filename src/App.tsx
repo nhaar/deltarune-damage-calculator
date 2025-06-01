@@ -847,6 +847,15 @@ function redBusterDamage(atk: number, mag: number, def: number) {
 export default function App() {
   const [chapter, setChapter] = useState<number>(1);
   const [altLvRegister, setAltLvRegister] = useState<boolean>(false);
+  const [ch2Kills, setCh2Kills] = useState<{ beforeNoelle: number; afterNoelle: number }>({
+    beforeNoelle: 0,
+    afterNoelle: 0
+  });
+  const [ch2GotStronger, setCh2GotStronger] = useState<{
+    noelle: number;
+    you: number;
+  }>({ noelle: 0, you: 0 });
+
   const [enemy, setEnemy] = useState<Enemy | ''>('');
   const [enemyHp, setEnemyHp] = useState<number>(0);
   const [enemyDef, setEnemyDef] = useState<number>(0);
@@ -997,14 +1006,28 @@ export default function App() {
     }
   }
 
+  let youStrongTimes = 0;
+  let noelleStrongTimes = 0;
+  if (altLvRegister) {
+    youStrongTimes = ch2GotStronger.you;
+    noelleStrongTimes = ch2GotStronger.noelle;
+  } else {
+    const kills = ch2Kills.beforeNoelle + ch2Kills.afterNoelle;
+    youStrongTimes = Math.floor(kills / 10);
+    noelleStrongTimes = Math.floor(kills / 4) - Math.floor(ch2Kills.beforeNoelle / 4);
+  }
+
   const stats: Record<string, CharacterStats> = {};
   for (const name of Object.keys(baseStatInfo)) {
     const character = name as CharacterName;
     const char = characters[character as CharacterName];
+
+    const strongIncrement = character === 'Noelle' ? noelleStrongTimes : youStrongTimes;
+
     stats[character] = {
-      atk: getBaseStats(character, lv).atk + ARMOR_INFO[char.armor1].atk + ARMOR_INFO[char.armor2].atk + WEAPON_INFO[char.weapon].atk,
+      atk: getBaseStats(character, lv).atk + ARMOR_INFO[char.armor1].atk + ARMOR_INFO[char.armor2].atk + WEAPON_INFO[char.weapon].atk + strongIncrement,
       def: getBaseStats(character, lv).def + ARMOR_INFO[char.armor1].def + ARMOR_INFO[char.armor2].def + WEAPON_INFO[char.weapon].def,
-      mag: getBaseStats(character, lv).mag + ARMOR_INFO[char.armor1].mag + ARMOR_INFO[char.armor2].mag + WEAPON_INFO[char.weapon].mag
+      mag: getBaseStats(character, lv).mag + ARMOR_INFO[char.armor1].mag + ARMOR_INFO[char.armor2].mag + WEAPON_INFO[char.weapon].mag + strongIncrement
     }
   }
 
@@ -1033,28 +1056,36 @@ export default function App() {
           <div>
             <div>
               <input type='checkbox' name='alt-lv-up' checked={altLvRegister} onChange={e => setAltLvRegister(e.target.checked)} />
-              <label htmlFor='alt-lv-up'>Use alternate LV up register</label>
+              <label htmlFor='alt-lv-up'>Use alternate kills register</label>
             </div>
             {altLvRegister ? (
               <div>
                 <div>
                   <label htmlFor='times-stronger'>Times you got stronger</label>
-                  <input type='number' name='times-stronger' />
+                  <input type='number' name='times-stronger' value={ch2GotStronger.you} onChange={(e) => {
+                    setCh2GotStronger(c => ({ ...c, you: Number(e.target.value) }));
+                  }} />
                 </div>
                 <div>
                   <label htmlFor='noelle-stronger'>Times Noelle got stronger</label>
-                  <input type='number' name='noelle-stronger' />
+                  <input type='number' name='noelle-stronger' value={ch2GotStronger.noelle} onChange={(e) => {
+                    setCh2GotStronger(c => ({ ...c, noelle: Number(e.target.value) }));
+                  }} />
                 </div>
               </div>
             ) : (
               <div>
                 <div>
                   <label htmlFor='before-noelle'>Chapter 2 Kills [Before Noelle]</label>
-                  <input type='number' name='before-noelle' />
+                  <input type='number' name='before-noelle' value={ch2Kills.beforeNoelle} onChange={(e) => {
+                    setCh2Kills(c => ({ ...c, beforeNoelle: Number(e.target.value) }));
+                  }} />
                 </div>
                 <div>
                   <label htmlFor='after-noelle'>Chapter 2 Kills [After Noelle]</label>
-                  <input type='number' name='after-noelle' />
+                  <input type='number' name='after-noelle' value={ch2Kills.afterNoelle} onChange={(e) => {
+                    setCh2Kills(c => ({ ...c, afterNoelle: Number(e.target.value) }));
+                  }} />
                 </div>
               </div>
             )}
