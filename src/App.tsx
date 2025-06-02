@@ -844,7 +844,7 @@ function DamageRow({ label, characterStats, distance, enemyDef }: {
   distance: number,
   enemyDef: number
 }) {
-  const { chapter } = useContext(AppContext);
+  const { chapter, damageMultiplier } = useContext(AppContext);
 
   return (
     <tr>
@@ -857,7 +857,9 @@ function DamageRow({ label, characterStats, distance, enemyDef }: {
         if (chapter < info.chapter) {
           return undefined;
         }
-        const damage = calculateDamage(distance, stats.atk, enemyDef);
+        // the only battle with multiplier uses ceil
+        // if a different battle shows up, it can be maybe tweaked
+        const damage = Math.ceil(calculateDamage(distance, stats.atk, enemyDef) * damageMultiplier);
         return (
           <td style={{
             color: CHAR_COLORS[name as CharacterName]
@@ -1203,11 +1205,16 @@ export default function App() {
   // dynamic changes in defense
   let enemyDefModifier = 0;
 
+  // for battles that use a static multiplier in the damage dealt
+  let damageMultiplier = 1;
+
   switch (enemy) {
     case 'Susie':
       // the weapon is accounted for interestingly
       const susie = characters.Susie;
       enemyDefModifier = ARMOR_INFO[susie.armor1].def + ARMOR_INFO[susie.armor2].def + WEAPON_INFO[susie.weapon].def;
+
+      damageMultiplier = 0.3;
       break;
   }
 
@@ -1276,10 +1283,10 @@ export default function App() {
 
   return (
     <AppContext value={{
-      chapter
+      chapter,
+      damageMultiplier
     }}>
       <>
-
         <div className='info-boxes'>
           <div className='info-box'>
             <h1>
