@@ -11,9 +11,10 @@ import Armor1 from './assets/Armor1.png'
 import Armor2 from './assets/Armor2.png'
 import './css/main.css';
 import './App.css'
+import { CharacterName } from './data'
 import { AppContext } from './context/AppContext'
 
-const CHAPTERS = 2;
+const CHAPTERS = 3;
 
 const MAX_LEVEL = 3;
 
@@ -155,6 +156,30 @@ const WEAPON_INFO: Record<Weapon, Item> = {
     def: 0,
     mag: 0,
     ch: 2
+  },
+  'Saber10': {
+    atk: 6,
+    def:0,
+    mag: 0,
+    ch: 3
+  },
+  'ToxicAxe': {
+    atk: 6,
+    def:0,
+    mag: 0,
+    ch: 3
+  },
+  'FlexScarf': {
+    atk: 4,
+    def: 0,
+    mag: 1,
+    ch: 3
+  },
+  'BlackShard': {
+    atk: 16,
+    def: 0,
+    mag: 0,
+    ch: 3
   }
 }
 
@@ -193,13 +218,15 @@ const ALLOWED_WEAPONS: Record<CharacterName, Weapon[]> = {
     'Woodblade',
     'SpookySword',
     'BounceBlade',
-    'MechaSaber'
+    'MechaSaber',
+    'Saber10'
   ],
   'Susie': [
     'Mane Ax',
     'BraveAx',
     'Devilsknife',
-    'AutoAxe'
+    'AutoAxe',
+    'ToxicAxe'
   ],
   'Noelle': [
     'SnowRing',
@@ -212,7 +239,8 @@ const ALLOWED_WEAPONS: Record<CharacterName, Weapon[]> = {
     'DaintyScarf',
     'FiberScarf',
     'Ragger2',
-    'PuppetScarf'
+    'PuppetScarf',
+    'FlexScarf'
   ]
 }
 
@@ -345,10 +373,7 @@ const ARMOR_INFO: Record<Armor, Item> = {
   }
 }
 
-type CharacterName = 'Kris' | 
-  'Susie' |
-  'Ralsei' |
-  'Noelle'
+
 
 type Character = {
   weapon: Weapon
@@ -377,7 +402,11 @@ type Weapon = 'Woodblade' |
   'Ragger2' |
   'BrokenSwd' |
   'PuppetScarf' |
-  'FreezeRing'
+  'FreezeRing' |
+  'Saber10' |
+  'ToxicAxe' |
+  'FlexScarf' |
+  'BlackShard'
 
 type Armor = '------' |
   'White Ribbon' |
@@ -437,7 +466,8 @@ type Enemy = 'Lancer (Castle Town)' |
   'Spamton NEO [Basement]' |
   'Mauswheel' |
   'Queen' |
-  'Spamton NEO [Snowgrave]'
+  'Spamton NEO [Snowgrave]' |
+  'Knight'
 
 type EnemyStats = {
   df: number,
@@ -572,6 +602,10 @@ const enemyInfo: Record<Enemy, EnemyStats> = {
   'Spamton NEO [Snowgrave]': {
     hp: 4809,
     df: -27
+  },
+  'Knight': {
+    hp: 7300,
+    df: 0
   }
 }
 
@@ -618,7 +652,7 @@ const CHARACTER_INFO: Record<CharacterName, {
       3: {
         atk: 18,
         def: 2,
-        mag: 3
+        mag: 2
       }
     },
     chapter: 1,
@@ -859,7 +893,7 @@ function DamageRow({ label, characterStats, distance, enemyDef }: {
         }
         // the only battle with multiplier uses ceil
         // if a different battle shows up, it can be maybe tweaked
-        const damage = Math.ceil(calculateDamage(distance, stats.atk, enemyDef) * damageMultiplier);
+        const damage = damageMultiplier(calculateDamage(distance, stats.atk, enemyDef), name as CharacterName);
         return (
           <td style={{
             color: CHAR_COLORS[name as CharacterName]
@@ -927,6 +961,8 @@ function SpellTable({
   characterStats: CharacterStats,
   enemyDef: number;
 }) {
+  const { rudeBusterMultiplier } = useContext(AppContext);
+
   return (
     <table border={2} cellPadding={10}>
       <thead>
@@ -938,13 +974,17 @@ function SpellTable({
       </thead>
       <tbody>
         {rows.map(row => {
+          let damage = row.rowFormula(characterStats, enemyDef);
+          if (spellName === 'Rude Buster') {
+            damage = rudeBusterMultiplier(damage);
+          }
           return (
             <tr>
               <td>
                 {row.rowName}
               </td>
               <td style={{ color }}>
-                {row.rowFormula(characterStats, enemyDef)}
+                {damage}
               </td>
             </tr>
           )
@@ -1104,10 +1144,18 @@ export default function App() {
 
   // saving progress for variables that you can increment to reduce defense (eg spending lots of turns in a battle)
   const [defenseReducers, setDefenseReducers] = useState<Partial<Record<Enemy, number>>>({});
+  const [knightTurn, setKnightTurn] = useState<number>(1);
+  const [susieDown, setSusieDown] = useState<boolean>(false);
+  const [ralseiDown, setRalseiDown] = useState<boolean>(false);
+  
 
   function updateChapter(e: React.ChangeEvent<HTMLInputElement>) {
     setChapter(clampInteger(Number(e.target.value), 1, CHAPTERS));
     setEnemy('');
+  }
+
+  function updateKnightTurn(turn: number) {
+    setKnightTurn(clampInteger(turn, 1, 15));
   }
 
   function updateLevel(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1200,13 +1248,23 @@ export default function App() {
         'Spamton NEO [Snowgrave]'
       ]
       break;
+    case 3:
+      enemies = [
+        'Knight'
+      ];
+      break;
   }
 
   // dynamic changes in defense
   let enemyDefModifier = 0;
 
   // for battles that use a static multiplier in the damage dealt
-  let damageMultiplier = 1;
+  let damageMultiplier = (n: number, _: CharacterName) => n;
+  let rudeMultiplier = (n: number) => n;
+
+  function getKnightDamageReduction(turns: number) {
+    return 0.2 + (turns - 1) * 0.01;
+  }
 
   switch (enemy) {
     case 'Susie':
@@ -1214,7 +1272,22 @@ export default function App() {
       const susie = characters.Susie;
       enemyDefModifier = ARMOR_INFO[susie.armor1].def + ARMOR_INFO[susie.armor2].def + WEAPON_INFO[susie.weapon].def;
 
-      damageMultiplier = 0.3;
+      damageMultiplier = (dmg) => Math.ceil(dmg * 0.3);
+      break;
+    case 'Knight':
+
+      damageMultiplier = (dmg: number, name: CharacterName) => {
+        let newdmg = Math.ceil(dmg * getKnightDamageReduction(knightTurn));
+        if (!susieDown && !ralseiDown && name === 'Kris') {
+          return gamemakerRound(newdmg * 0.5);
+        } else if (susieDown && ralseiDown) {
+          return newdmg * 2;
+        }
+        return newdmg;
+      };
+      rudeMultiplier = (dmg: number) => {
+        return gamemakerRound(Math.ceil(dmg * (getKnightDamageReduction(knightTurn) + 0.65)) / 2);
+      }
       break;
   }
 
@@ -1284,7 +1357,8 @@ export default function App() {
   return (
     <AppContext value={{
       chapter,
-      damageMultiplier
+      damageMultiplier,
+      rudeBusterMultiplier: rudeMultiplier
     }}>
       <>
         <div className='info-boxes'>
@@ -1373,6 +1447,22 @@ export default function App() {
                 </div>
               );
             })}
+            {enemy === 'Knight' && (
+              <div>
+                <div>
+                  <span className='reducer-desc'>Current knight turn (eg 1: has not attacked yet)</span>
+                  <input className='reducer-input' type='number' value={knightTurn} onChange={e => updateKnightTurn(Number(e.target.value))} />
+                </div>
+                <div>
+                  <span className='reducer-desc'>Is Susie DOWN?</span>
+                  <input type='checkbox' className='reducer-input' checked={susieDown} onChange={e => setSusieDown(e.target.checked)} />
+                </div>
+                <div>
+                  <span className='reducer-desc'>Is Ralsei DOWN?</span>
+                  <input type='checkbox' className='reducer-input' checked={ralseiDown} onChange={e => setRalseiDown(e.target.checked)} />
+                </div>
+              </div>
+            )}
           </div>
           {...Object.entries(CHARACTER_INFO).map(pair => {
             const [name, info] = pair;
