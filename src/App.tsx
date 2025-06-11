@@ -1278,10 +1278,12 @@ export default function App() {
 
       damageMultiplier = (dmg: number, name: CharacterName) => {
         let newdmg = Math.ceil(dmg * getKnightDamageReduction(knightTurn));
-        if (!susieDown && !ralseiDown && name === 'Kris') {
-          return gamemakerRound(newdmg * 0.5);
-        } else if (susieDown && ralseiDown) {
-          return newdmg * 2;
+        if (name === 'Kris') {
+          if (!susieDown && !ralseiDown) {
+            return gamemakerRound(newdmg * 0.5);
+          } else if (susieDown && ralseiDown) {
+            return newdmg * 2;
+          }
         }
         return newdmg;
       };
