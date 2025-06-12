@@ -467,7 +467,8 @@ type Enemy = 'Lancer (Castle Town)' |
   'Mauswheel' |
   'Queen' |
   'Spamton NEO [Snowgrave]' |
-  'Knight'
+  'Knight' |
+  'Tenna'
 
 type EnemyStats = {
   df: number,
@@ -605,6 +606,10 @@ const enemyInfo: Record<Enemy, EnemyStats> = {
   },
   'Knight': {
     hp: 7300,
+    df: 0
+  },
+  'Tenna': {
+    hp: 5500,
     df: 0
   }
 }
@@ -1186,7 +1191,7 @@ export default function App() {
   const [knightTurn, setKnightTurn] = useState<number>(1);
   const [susieDown, setSusieDown] = useState<boolean>(false);
   const [ralseiDown, setRalseiDown] = useState<boolean>(false);
-  
+  const [didMantleQuest, setDidMantleQuest] = useState<boolean>(false);
 
   function updateChapter(e: React.ChangeEvent<HTMLInputElement>) {
     setChapter(clampInteger(Number(e.target.value), 1, CHAPTERS));
@@ -1289,6 +1294,7 @@ export default function App() {
       break;
     case 3:
       enemies = [
+        'Tenna',
         'Knight'
       ];
       break;
@@ -1330,6 +1336,13 @@ export default function App() {
         return gamemakerRound(Math.ceil(dmg * (getKnightDamageReduction(knightTurn) + 0.65)) / 2);
       }
       break;
+    case 'Tenna':
+      damageMultiplier = (dmg: number, name: CharacterName) => {
+        if (name === 'Kris') {
+          return gamemakerRound(dmg * (didMantleQuest ? 3 : 0.5));
+        }
+        return dmg;
+      }
   }
 
   const enemyDefenseReducers: Partial<Record<Enemy, {
@@ -1502,6 +1515,12 @@ export default function App() {
                   <span className='reducer-desc'>Is Ralsei DOWN?</span>
                   <input type='checkbox' className='reducer-input' checked={ralseiDown} onChange={e => setRalseiDown(e.target.checked)} />
                 </div>
+              </div>
+            )}
+            {enemy === 'Tenna' && (
+              <div>
+                  <span className='reducer-desc'>Completed Mantle Quest?</span>
+                  <input type='checkbox' className='reducer-input' checked={didMantleQuest} onChange={e => setDidMantleQuest(e.target.checked)} />
               </div>
             )}
           </div>
