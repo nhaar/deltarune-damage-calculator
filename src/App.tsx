@@ -967,7 +967,7 @@ function SpellTable({
   characterStats: CharacterStats,
   enemyDef: number;
 }) {
-  const { rudeBusterMultiplier } = useContext(AppContext);
+  const { rudeBusterMultiplier, rudeStatMultiplier } = useContext(AppContext);
 
   return (
     <table border={2} cellPadding={10}>
@@ -983,7 +983,7 @@ function SpellTable({
           let [mult, stat] = row.rowFormula(characterStats, enemyDef);
           if (spellName === 'Rude Buster') {
             mult = rudeBusterMultiplier(mult);
-            stat = gamemakerRound(stat / 2);
+            stat = rudeStatMultiplier(mult);
           }
           const damage = mult + stat;
           return (
@@ -1306,6 +1306,7 @@ export default function App() {
   // for battles that use a static multiplier in the damage dealt
   let damageMultiplier = (n: number, _: CharacterName) => n;
   let rudeMultiplier = (n: number) => n;
+  let rudeStatMultiplier = (n: number) => n;
 
   function getKnightDamageReduction(turns: number) {
     return 0.2 + (turns - 1) * 0.01;
@@ -1334,6 +1335,9 @@ export default function App() {
       };
       rudeMultiplier = (dmg: number) => {
         return gamemakerRound(Math.ceil(dmg * (getKnightDamageReduction(knightTurn) + 0.65)) / 2);
+      }
+      rudeStatMultiplier = (dmg: number) => {
+        return gamemakerRound(dmg / 2);
       }
       break;
     case 'Tenna':
@@ -1412,7 +1416,8 @@ export default function App() {
     <AppContext value={{
       chapter,
       damageMultiplier,
-      rudeBusterMultiplier: rudeMultiplier
+      rudeBusterMultiplier: rudeMultiplier,
+      rudeStatMultiplier: rudeStatMultiplier
     }}>
       <>
         <div className='info-boxes'>
