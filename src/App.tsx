@@ -945,7 +945,8 @@ function DamageTable({ characterStats, enemyDef }: {
 
 type SpellRows = Array<{
   rowName: string;
-  rowFormula: (stats: CharacterStats, def: number) => number;
+  // second number returned is damage that can be affected by multiplier, second is static + damage
+  rowFormula: (stats: CharacterStats, def: number) => [number, number];
 }>;
 
 function SpellTable({
@@ -974,10 +975,12 @@ function SpellTable({
       </thead>
       <tbody>
         {rows.map(row => {
-          let damage = row.rowFormula(characterStats, enemyDef);
+          let [mult, stat] = row.rowFormula(characterStats, enemyDef);
           if (spellName === 'Rude Buster') {
-            damage = rudeBusterMultiplier(damage);
+            mult = rudeBusterMultiplier(mult);
+            stat = gamemakerRound(stat / 2);
           }
+          const damage = mult + stat;
           return (
             <tr>
               <td>
@@ -1026,15 +1029,51 @@ const SPELLS: Array<{
     chapter: 1,
     rows: [
       {
-        rowName: 'Mash Z',
+        rowName: 'Crit Rude',
         rowFormula(stats, def) {
-          return rudeBusterDamage(stats.atk, stats.mag, def) + 30;
+          return [rudeBusterDamage(stats.atk, stats.mag, def), 30];
         },
       },
       {
-        rowName: 'No Mash Z',
+        rowName: '1 Frame Early',
         rowFormula(stats, def) {
-          return rudeBusterDamage(stats.atk, stats.mag, def);
+          return [rudeBusterDamage(stats.atk, stats.mag, def), 28];
+        },
+      },
+      {
+        rowName: '2 Frames Early',
+        rowFormula(stats, def) {
+          return [rudeBusterDamage(stats.atk, stats.mag, def), 20];
+        },
+      },
+      {
+        rowName: '3 Frames Early',
+        rowFormula(stats, def) {
+          return [rudeBusterDamage(stats.atk, stats.mag, def), 13];
+        },
+      },
+      {
+        rowName: '4 Frames Early',
+        rowFormula(stats, def) {
+          return [rudeBusterDamage(stats.atk, stats.mag, def), 11];
+        },
+      },
+      {
+        rowName: '5 Frames Early',
+        rowFormula(stats, def) {
+          return [rudeBusterDamage(stats.atk, stats.mag, def), 10];
+        },
+      },
+      {
+        rowName: '6 Frames Early',
+        rowFormula(stats, def) {
+          return [rudeBusterDamage(stats.atk, stats.mag, def), 7];
+        },
+      },
+      {
+        rowName: 'Timing Fail',
+        rowFormula(stats, def) {
+          return [rudeBusterDamage(stats.atk, stats.mag, def), 0];
         },
       }
     ],
@@ -1045,15 +1084,15 @@ const SPELLS: Array<{
     name: 'Red Buster',
     rows: [
       {
-        rowName: 'Mash Z',
+        rowName: 'Crit Rude',
         rowFormula(stats, def) {
-          return redBusterDamage(stats.atk, stats.mag, def) + 30;
+          return [redBusterDamage(stats.atk, stats.mag, def), 30];
         },
       },
       {
         rowName: 'No Mash Z',
         rowFormula(stats, def) {
-          return redBusterDamage(stats.atk, stats.mag, def);
+          return [redBusterDamage(stats.atk, stats.mag, def), 0];
         },
       }
     ],
@@ -1067,13 +1106,13 @@ const SPELLS: Array<{
       {
         rowName: 'Highest Roll',
         rowFormula(stats) {
-          return iceShockRoll(stats.mag) + 9;
+          return [iceShockRoll(stats.mag) + 9, 0];
         },
       },
       {
         rowName: 'Lowest Roll',
         rowFormula(stats) {
-          return iceShockRoll(stats.mag);
+          return [iceShockRoll(stats.mag), 0];
         },
       }
     ],
@@ -1087,13 +1126,13 @@ const SPELLS: Array<{
       {
         rowName: 'Single Slash',
         rowFormula(stats, def) {
-          return singleXSlash(stats.atk, def);
+          return [singleXSlash(stats.atk, def), 0];
         },
       },
       {
         rowName: 'Total Damage',
         rowFormula(stats, def) {
-          return 2 * singleXSlash(stats.atk, def);
+          return [2 * singleXSlash(stats.atk, def), 0];
         },
       }
     ],
@@ -1107,13 +1146,13 @@ const SPELLS: Array<{
       {
         rowName: 'Highest Roll',
         rowFormula(stats) {
-          return snowgraveRoll(stats.mag) + 100;
+          return [snowgraveRoll(stats.mag) + 100, 0];
         },
       },
       {
         rowName: 'Lowest Roll',
         rowFormula(stats) {
-          return snowgraveRoll(stats.mag);
+          return [snowgraveRoll(stats.mag), 0];
         },
       }
     ],
