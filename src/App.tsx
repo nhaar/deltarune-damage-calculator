@@ -983,7 +983,7 @@ function SpellTable({
           let [mult, stat] = row.rowFormula(characterStats, enemyDef);
           if (spellName === 'Rude Buster') {
             mult = rudeBusterMultiplier(mult);
-            stat = rudeStatMultiplier(mult);
+            stat = rudeStatMultiplier(stat);
           }
           const damage = mult + stat;
           return (
