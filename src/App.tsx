@@ -256,6 +256,10 @@ const FORBIDDEN_ARMORS: Record<CharacterName, Armor[]> = {
   'Noelle': []
 }
 
+const UNUSED_ARMOR: Armor[] = [
+  'SpikeShackle'
+];
+
 const ARMOR_INFO: Record<Armor, Item> = {
   '------': {
     atk: 0,
@@ -370,6 +374,12 @@ const ARMOR_INFO: Record<Armor, Item> = {
     def: 2,
     mag: 0,
     ch: 1
+  },
+  'SpikeShackle': {
+    atk: 3,
+    def: 1,
+    mag: 0,
+    ch: 2
   }
 }
 
@@ -426,7 +436,8 @@ type Armor = '------' |
   'SpikeBand' |
   'Twin Ribbon' |
   'Tension Bow' |
-  'Mannequin';
+  'Mannequin' |
+  'SpikeShackle';
 
 type Item = {
   atk: number,
@@ -790,6 +801,7 @@ function ArmorSelect({ start, onChange, character, allItems }: {
 
   if (!allItems) {
     FORBIDDEN_ARMORS[character].forEach(armor => allowed.delete(armor));
+    UNUSED_ARMOR.forEach(armor => allowed.delete(armor));
   }
 
   return <ItemSelect<Armor> start={start} onChange={onChange} info={ARMOR_INFO} allowed={allowed} allItems={allItems} />
