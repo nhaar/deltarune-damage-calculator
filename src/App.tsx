@@ -14,9 +14,9 @@ import './App.css'
 import { CharacterName } from './data'
 import { AppContext } from './context/AppContext'
 
-const CHAPTERS = 3;
+const CHAPTERS = 4;
 
-const MAX_LEVEL = 3;
+const MAX_LEVEL = 4;
 
 type CharacterStats = {
   atk: number,
@@ -180,6 +180,12 @@ const WEAPON_INFO: Record<Weapon, Item> = {
     def: 0,
     mag: 0,
     ch: 3
+  },
+  'JusticeAxe': {
+    atk: 12,
+    def: 0,
+    mag: 0,
+    ch: 4
   }
 }
 
@@ -219,14 +225,16 @@ const ALLOWED_WEAPONS: Record<CharacterName, Weapon[]> = {
     'SpookySword',
     'BounceBlade',
     'MechaSaber',
-    'Saber10'
+    'Saber10',
+    'BlackShard'
   ],
   'Susie': [
     'Mane Ax',
     'BraveAx',
     'Devilsknife',
     'AutoAxe',
-    'ToxicAxe'
+    'ToxicAxe',
+    'JusticeAxe'
   ],
   'Noelle': [
     'SnowRing',
@@ -380,6 +388,12 @@ const ARMOR_INFO: Record<Armor, Item> = {
     def: 1,
     mag: 0,
     ch: 2
+  },
+  'GingerGuard': {
+    atk: 0,
+    def: 3,
+    mag: 0,
+    ch: 3
   }
 }
 
@@ -416,7 +430,8 @@ type Weapon = 'Woodblade' |
   'Saber10' |
   'ToxicAxe' |
   'FlexScarf' |
-  'BlackShard'
+  'BlackShard' |
+  'JusticeAxe'
 
 type Armor = '------' |
   'White Ribbon' |
@@ -437,7 +452,8 @@ type Armor = '------' |
   'Twin Ribbon' |
   'Tension Bow' |
   'Mannequin' |
-  'SpikeShackle';
+  'SpikeShackle' |
+  'GingerGuard';
 
 type Item = {
   atk: number,
@@ -479,7 +495,8 @@ type Enemy = 'Lancer (Castle Town)' |
   'Queen' |
   'Spamton NEO [Snowgrave]' |
   'Knight' |
-  'Tenna'
+  'Tenna' |
+  'Titan'
 
 type EnemyStats = {
   df: number,
@@ -622,6 +639,10 @@ const enemyInfo: Record<Enemy, EnemyStats> = {
   'Tenna': {
     hp: 5500,
     df: 0
+  },
+  'Titan': {
+    hp: 21000,
+    df: 0
   }
 }
 
@@ -647,6 +668,11 @@ const CHARACTER_INFO: Record<CharacterName, {
         atk: 14,
         def: 2,
         mag: 0
+      },
+      4: {
+        atk: 17,
+        def: 2,
+        mag: 0
       }
     },
     chapter: 1,
@@ -669,6 +695,11 @@ const CHARACTER_INFO: Record<CharacterName, {
         atk: 18,
         def: 2,
         mag: 2
+      },
+      4: {
+        atk: 22,
+        def: 2,
+        mag: 3
       }
     },
     chapter: 1,
@@ -691,6 +722,11 @@ const CHARACTER_INFO: Record<CharacterName, {
         atk: 12,
         def: 2,
         mag: 11
+      },
+      4: {
+        atk: 15,
+        def: 2,
+        mag: 14
       }
     },
     chapter: 1,
@@ -705,6 +741,11 @@ const CHARACTER_INFO: Record<CharacterName, {
         mag: 11
       },
       3: {
+        atk: 3,
+        def: 1,
+        mag: 11
+      },
+      4: {
         atk: 3,
         def: 1,
         mag: 11
@@ -1204,6 +1245,8 @@ export default function App() {
   const [susieDown, setSusieDown] = useState<boolean>(false);
   const [ralseiDown, setRalseiDown] = useState<boolean>(false);
   const [didMantleQuest, setDidMantleQuest] = useState<boolean>(false);
+  const [unleashes, setUnleashes] = useState<number>(1);
+  const [titanShield, setTitanShield] = useState<boolean>(false);
 
   function updateChapter(e: React.ChangeEvent<HTMLInputElement>) {
     setChapter(clampInteger(Number(e.target.value), 1, CHAPTERS));
@@ -1310,6 +1353,11 @@ export default function App() {
         'Knight'
       ];
       break;
+    case 4:
+      enemies = [
+        'Titan'
+      ];
+      break;
   }
 
   // dynamic changes in defense
@@ -1359,6 +1407,33 @@ export default function App() {
         }
         return dmg;
       }
+      break;
+    case 'Titan':
+      const unleashMultiplier = [1, 1, 1.2, 2, 3][unleashes - 1] ?? 1;
+
+      damageMultiplier = (dmg: number, name: CharacterName) => {
+        if (name === 'Kris' && characters['Kris'].weapon === 'BlackShard') {
+          if (titanShield) {
+            return Math.ceil(dmg * 3);
+          } else {
+            return Math.ceil(dmg * 10 * unleashMultiplier);
+          }
+        } else {
+          if (titanShield) {
+            return Math.ceil(0.5 * dmg);
+          } else {
+            return Math.ceil(dmg * 5 * unleashMultiplier);
+          }
+        }
+      }
+      rudeMultiplier = (dmg: number) => {
+        if (titanShield) {
+          return Math.ceil(dmg * 0.5);
+        } else {
+          return Math.ceil(dmg * 5 * unleashMultiplier);
+        }
+      }
+      break;
   }
 
   const enemyDefenseReducers: Partial<Record<Enemy, {
@@ -1538,6 +1613,18 @@ export default function App() {
               <div>
                   <span className='reducer-desc'>Completed Mantle Quest?</span>
                   <input type='checkbox' className='reducer-input' checked={didMantleQuest} onChange={e => setDidMantleQuest(e.target.checked)} />
+              </div>
+            )}
+            {enemy === 'Titan' && (
+              <div>
+                <div>
+                  <span className='reducer-desc'>Total Unleashes (eg 1: just did first unleash)</span>
+                  <input className='reducer-input' type='number' value={unleashes} onChange={e => setUnleashes(Number(e.target.value))} />
+                </div>
+                <div>
+                  <span className='reducer-desc'>Titan has shield up?</span>
+                  <input type='checkbox' className='reducer-input' checked={titanShield} onChange={e => setTitanShield(e.target.checked)} />
+              </div>
               </div>
             )}
           </div>
