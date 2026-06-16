@@ -394,6 +394,18 @@ const ARMOR_INFO: Record<Armor, Item> = {
     def: 3,
     mag: 0,
     ch: 3
+  },
+  'PowerBand': {
+    atk: 4,
+    def: 0,
+    mag: 0,
+    ch: 4
+  },
+  'PrincessRbn': {
+    atk: 2,
+    def: 4,
+    mag: 0,
+    ch: 4
   }
 }
 
@@ -453,7 +465,9 @@ type Armor = '------' |
   'Tension Bow' |
   'Mannequin' |
   'SpikeShackle' |
-  'GingerGuard';
+  'GingerGuard' |
+  'PowerBand' |
+  'PrincessRbn';
 
 type Item = {
   atk: number,
